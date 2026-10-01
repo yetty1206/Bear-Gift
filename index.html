@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>곰의 선물 배달</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #dde8e4;
+    --card: #f5f9f7;
+    --ink: #263a3a;
+    --soft: #5d7373;
+    --btn: #e6efeb;
+    --btn-hover: #d5e4de;
+    --accent: #e29aae;
+    --accent-ink: #3a1f28;
+    --ring: #6e9c85;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #17221f; --card: #1f2e2a; --ink: #e4efea; --soft: #98b0a8;
+      --btn: #293b36; --btn-hover: #33493f; --accent: #e8a9ba; --accent-ink: #2b1720; --ring: #8cc4a8;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #17221f; --card: #1f2e2a; --ink: #e4efea; --soft: #98b0a8;
+    --btn: #293b36; --btn-hover: #33493f; --accent: #e8a9ba; --accent-ink: #2b1720; --ring: #8cc4a8;
+  }
+  html { height: 100%; scroll-padding-top: env(safe-area-inset-top, 0px); }
+  *, *::before, *::after { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100%;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Gowun Dodum", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  .game {
+    width: 100%;
+    max-width: 440px;
+    background: var(--card);
+    border-radius: 28px;
+    padding: 36px 26px 26px;
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    transition: max-width .4s ease;
+  }
+  .game.wide { max-width: 720px; padding: 26px 26px 26px; }
+  .art { font-size: 64px; line-height: 1.1; text-align: center; min-height: 76px; letter-spacing: 6px; }
+  .text {
+    margin: 0;
+    font-size: 19px;
+    line-height: 1.75;
+    text-align: center;
+    word-break: keep-all;
+    min-height: 7.2em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .choices { display: flex; flex-direction: column; gap: 10px; }
+  .choices button {
+    font: inherit;
+    font-size: 17px;
+    color: var(--ink);
+    background: var(--btn);
+    border: 0;
+    border-radius: 18px;
+    padding: 15px 18px;
+    cursor: pointer;
+    transition: background .15s ease, transform .1s ease;
+  }
+  .choices button:hover { background: var(--btn-hover); }
+  .choices button:active { transform: scale(.98); }
+  .choices button.primary { background: var(--accent); color: var(--accent-ink); }
+  .choices button:focus-visible, .skip:focus-visible { outline: 3px solid var(--ring); outline-offset: 2px; }
+  .scene { animation: fade .45s ease both; display: flex; flex-direction: column; gap: 22px; }
+  @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+
+  .stage { position: relative; width: 100%; aspect-ratio: 16 / 9; background: #000; border-radius: 18px; overflow: hidden; }
+  .stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .sub {
+    position: absolute;
+    left: 50%;
+    bottom: 5%;
+    transform: translateX(-50%);
+    max-width: 90%;
+    width: max-content;
+    padding: 6px 16px;
+    border-radius: 12px;
+    background: rgba(20, 30, 40, .62);
+    color: #fff;
+    font-size: clamp(13px, 2.5vw, 19px);
+    line-height: 1.5;
+    text-align: center;
+    word-break: keep-all;
+    opacity: 0;
+    transition: opacity .35s ease;
+    pointer-events: none;
+  }
+  .sub.on { opacity: 1; }
+  .skip {
+    position: absolute; top: 10px; right: 10px;
+    font: inherit; font-size: 13px; color: #fff;
+    background: rgba(20, 30, 40, .5);
+    border: 0; border-radius: 12px; padding: 6px 12px; cursor: pointer;
+  }
+  .laugh {
+    position: absolute; top: 10px; left: 10px;
+    padding: 6px 12px; border-radius: 14px;
+    background: rgba(255,255,255,.9); color: #263a3a;
+    font-size: clamp(12px, 2.2vw, 16px);
+    opacity: 0; pointer-events: none; transform-origin: left top;
+  }
+  .laugh.on { animation: lpop 1.2s ease both; }
+  @keyframes lpop {
+    0% { opacity: 0; transform: scale(.4) rotate(-8deg); }
+    15% { opacity: 1; transform: scale(1.12) rotate(3deg); }
+    28% { transform: scale(1) rotate(-2deg); }
+    50% { transform: scale(1.04) rotate(2deg); }
+    85% { opacity: 1; transform: scale(1) rotate(0); }
+    100% { opacity: 0; }
+  }
+  .verdict {
+    margin: 0; text-align: center; font-size: 19px; line-height: 1.6;
+    padding: 14px 18px; border-radius: 18px; word-break: keep-all;
+    background: var(--accent); color: var(--accent-ink);
+  }
+  .verdict.ready { animation: vpop .6s cubic-bezier(.3, 1.6, .5, 1) both; }
+  @keyframes vpop { from { transform: scale(.85); } to { transform: scale(1); } }
+  .reveal { opacity: 0; visibility: hidden; transition: opacity .5s ease; }
+  .reveal.ready { opacity: 1; visibility: visible; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .scene { animation: none; }
+    .choices button, .game, .sub, .reveal { transition: none; }
+    .laugh { display: none; }
+    .verdict.ready { animation: none; }
+  }
+</style>
+</head>
+<body>
+<main class="game" id="game" aria-live="polite"></main>
+
+<script>
+(function () {
+  var state = {};
+  var root = document.getElementById('game');
+  function reset() { state = { gift: null, path: null, shared: false }; }
+  /* ---------- 이야기 ---------- */
+  var GIFTS = {
+    honey: { label: '꿀단지', obj: '꿀단지를', emoji: '🍯', funny: false, share: '꿀을 한 숟갈 나눠 줬어요.' },
+    scarf: { label: '직접 뜬 목도리', obj: '직접 뜬 목도리를', emoji: '🧣', funny: false, share: '목도리 한쪽 끝을 둘러 줬어요.' },
+    empty: { label: '꿀 한 방울 안 남은 꿀단지', obj: '텅 빈 꿀단지를', emoji: '🫙', funny: true,
+      share: '병 바닥에 남은 꿀 한 방울을 핥게 해 줬어요.',
+      cry: '토끼는 텅 빈 단지를 들여다보다 엉엉 울었어요. 바닥에 "맛있었음 - 곰"이라는 쪽지가 붙어 있었거든요.' },
+    sock: { label: '양말 한 짝', obj: '양말 한 짝을', emoji: '🧦', funny: true,
+      share: '양말을 신겨 줬어요. 한 짝뿐이라 한 발만 따뜻해요.',
+      cry: '토끼는 양말 한 짝을 받아 들고 엉엉 울었어요. "나머지 한 짝은 어디 갔어…?"' },
+    fish: { label: '어제 먹다 남은 연어', obj: '어제 먹다 남은 연어를', emoji: '🐟', funny: true,
+      share: '연어를 한 입 나눠 줬어요. 그래도 아직 한참 남았어요.',
+      cry: '토끼는 연어를 받아 들고 엉엉 울었어요. 토끼는 풀만 먹는데, 연어에선 어제의 냄새가 났거든요.' }
+  };
+  var pickGift = function (id) { return function () { state.gift = id; }; };
+  var friend = function () { return state.path === 'river' ? '아기 오리' : '고슴도치'; };
+
+  var scenes = {
+    start: function () {
+      return { art: '🐻❄️🏠',
+        text: '눈이 소복이 쌓인 아침, 곰은 늦잠에서 벌떡 일어났어요. 큰일 났어요. 오늘은 토끼의 생일인데, 선물을 안 샀어요!',
+        choices: [{ label: '일단 집을 뒤져 본다', primary: true, next: 'gift' }] };
+    },
+    gift: function () {
+      return { art: '🎁❓',
+        text: '곰의 집을 뒤졌더니 이것저것 나왔어요. 시간이 없어요. 하나만 고르세요!',
+        choices: [
+          { label: GIFTS.honey.label, next: 'path', set: pickGift('honey') },
+          { label: GIFTS.scarf.label, next: 'path', set: pickGift('scarf') },
+          { label: GIFTS.empty.label, next: 'path', set: pickGift('empty') },
+          { label: GIFTS.sock.label, next: 'path', set: pickGift('sock') },
+          { label: GIFTS.fish.label, next: 'path', set: pickGift('fish') }
+        ] };
+    },
+    path: function () {
+      return { art: '🚪❄️',
+        text: '문을 열자 온통 새하얀 세상! 길은 두 갈래인데, 곰은 길치예요. 일단 감을 믿어 봐요.',
+        choices: [
+          { label: '졸졸 흐르는 냇가 길', next: 'meet', set: function () { state.path = 'river'; } },
+          { label: '고요한 숲길', next: 'meet', set: function () { state.path = 'forest'; } }
+        ] };
+    },
+    meet: function () {
+      var river = state.path === 'river';
+      return {
+        art: river ? '🦆💧' : '🦔🍂',
+        text: river
+          ? '냇가에서 아기 오리가 "꽥… 추워…" 하며 발을 동동 구르고 있어요. 곰은 파티에 늦었지만, 오리의 눈빛이 너무 간절해요.'
+          : '나무 밑에서 고슴도치가 덜덜 떨고 있어요. 가시가 바짝 선 걸 보니 추운 건지 화난 건지 알 수가 없어요.',
+        choices: [
+          { label: '선물을 슬쩍 나눠 준다', next: 'end', set: function () { state.shared = true; } },
+          { label: '"미안, 바빠!" 하고 지나간다', next: 'end', set: function () { state.shared = false; } }
+        ] };
+    },
+    end: function () {
+      var f = friend(), g = GIFTS[state.gift], text, verdict;
+      if (g.funny) {
+        text = state.shared
+          ? g.cry + ' 그때 함께 온 ' + f + '가 토닥토닥 위로해 줬고, 셋은 눈물 반 웃음 반으로 생일 파티를 했어요.'
+          : g.cry + ' 곰은 식은땀을 뻘뻘 흘리다 외쳤어요. "진짜 선물은… 나야!" 토끼는 울다가 풉 하고 웃고 말았어요.';
+      } else if (state.shared) {
+        text = state.gift === 'honey'
+          ? '곰은 꿀을 한 숟갈 떠서 ' + f + '에게 건넸어요. 볼이 발그레해진 ' + f + '와 함께 토끼네 집까지 걸어갔어요. 토끼는 깜짝 놀라다가 활짝 웃었고, 꿀차 세 잔에서 김이 폴폴 올라왔어요.'
+          : '곰은 목도리 한쪽 끝을 ' + f + '에게 둘러 줬어요. 한 목도리를 나눠 두르고 토끼네 집에 도착하자, 토끼는 활짝 웃으며 둘 다 안으로 불러들였어요.';
+      } else {
+        text = state.gift === 'honey'
+          ? '곰은 꿀단지를 꼭 안고 토끼네 집에 도착했어요. 토끼는 활짝 웃었고, 노릇한 꿀 토스트 냄새가 집 안에 퍼졌어요. 그래도 눈길에서 만난 ' + f + '가 한동안 마음에 남았어요.'
+          : '곰은 목도리를 곱게 안고 토끼네 집에 도착했어요. 토끼는 목도리를 두르고 활짝 웃었어요. 그래도 눈길에서 만난 ' + f + '가 한동안 마음에 남았어요.';
+      }
+      if (state.shared && !g.funny) verdict = ['🛡️', '의로운'];
+      else if (state.shared) verdict = ['🤪', '엉뚱하지만 의리 넘치는'];
+      else if (!g.funny) verdict = ['🎯', '뚝심 있는'];
+      else verdict = ['🌀', '자유로운 영혼의'];
+      return { movie: true, text: text,
+        verdict: verdict[0] + ' 당신은 정말 ' + verdict[1] + ' 곰 성격을 가졌군요!',
+        choices: [{ label: '다시 해 보기', primary: true, next: 'start', set: reset }] };
+    }
+  };
+
+  /* ---------- 애니메이션 영화 ---------- */
+  var W = 960, H = 540, G = 410, DPR = 1;
+  var raf = 0;
+
+  function cl(x) { return Math.max(0, Math.min(1, x)); }
+  function ease(x) { x = cl(x); return x * x * (3 - 2 * x); }
+  function lerp(a, b, u) { return a + (b - a) * u; }
+  function mod(a, n) { return ((a % n) + n) % n; }
+  function frac(x) { return x - Math.floor(x); }
+  function rnd(i, k) { return frac(Math.sin(i * 127.1 + k * 311.7) * 43758.5453); }
+
+  function E(c, ch, x, y, size, o) {
+    o = o || {};
+    c.save();
+    c.translate(x, y);
+    if (o.rot) c.rotate(o.rot);
+    if (o.sx != null || o.sy != null) c.scale(o.sx == null ? 1 : o.sx, o.sy == null ? 1 : o.sy);
+    if (o.a != null) c.globalAlpha *= o.a;
+    c.fillStyle = '#000';
+    c.font = size + 'px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
+    c.textAlign = 'center';
+    c.textBaseline = 'alphabetic';
+    c.fillText(ch, 0, 0);
+    c.restore();
+  }
+  function shadow(c, x, y, w, a) {
+    c.fillStyle = 'rgba(40,60,80,' + a + ')';
+    c.beginPath(); c.ellipse(x, y + 4, w, w * 0.22, 0, 0, Math.PI * 2); c.fill();
+  }
+  function char(c, ch, x, y, size, walking, t) {
+    shadow(c, x, y, size * 0.4, 0.14);
+    var by = walking ? -Math.abs(Math.sin(t * 9)) * 9 : 0;
+    var rot = walking ? Math.sin(t * 9) * 0.07 : 0;
+    E(c, ch, x, y + by, size, { rot: rot });
+  }
+  function limb(c, px, py, rot, cx, cy, rx, ry, fill, stroke) {
+    c.save(); c.translate(px, py); c.rotate(rot);
+    c.fillStyle = fill; c.beginPath(); c.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2); c.fill();
+    if (stroke) { c.strokeStyle = stroke; c.lineWidth = 2; c.stroke(); }
+    c.restore();
+  }
+  function blob(c, x, y, rx, ry, fill, stroke) { limb(c, 0, 0, 0, x, y, rx, ry, fill, stroke); }
+
+  /* 곰: 머리는 이모지, 몸통·팔·다리는 직접 그림 */
+  function bearRig(c, x, y, s, walking, t, lift, rot) {
+    var ph = walking ? t * 9 : 0;
+    var bob = walking ? -Math.abs(Math.sin(ph)) * 6 : 0;
+    var B = '#a8704c', BD = '#8a573a', BELLY = '#ecd2ac';
+    c.save(); c.translate(x, y + bob); c.scale(s, s);
+    if (lift || rot) { c.translate(0, -(lift || 0) - 50); c.rotate(rot || 0); c.translate(0, 50); }
+    [-1, 1].forEach(function (side) {
+      var sw = walking ? Math.sin(ph + (side > 0 ? Math.PI : 0)) : 0;
+      var lift = Math.max(0, sw) * 7;
+      var lx = side * 13 + sw * 8;
+      blob(c, lx, -15 - lift, 11, 16, B);
+      blob(c, lx + side * 2, -5 - lift, 14, 7, BD);
+    });
+    blob(c, 0, -52, 31, 35, B);
+    blob(c, 0, -48, 19, 24, BELLY);
+    [-1, 1].forEach(function (side) {
+      var sw = walking ? Math.sin(ph + (side > 0 ? 0 : Math.PI)) * 0.6 : 0;
+      limb(c, side * 28, -70, -side * 0.15 + sw, 0, 14, 9, 18, B);
+    });
+    E(c, '🐻', 0, -70, 80);
+    c.restore();
+  }
+  function bearChar(c, x, y, walking, t, lift, rot) {
+    shadow(c, x, y, 36 * (1 - (lift || 0) / 220), 0.14);
+    bearRig(c, x, y, 1, walking, t, lift, rot);
+  }
+
+  /* 토끼: 머리는 이모지, 하얀 몸통에 분홍 배 */
+  function bunnyRig(c, x, y, s, mood, t) {
+    var F = '#f7f1ec', ST = 'rgba(100,80,90,.3)', PK = '#f6cfd8';
+    c.save(); c.translate(x, y); c.scale(s, s);
+    [-1, 1].forEach(function (side) {
+      blob(c, side * 11, -11, 9, 12, F, ST);
+      blob(c, side * 14, -4, 13, 6.5, F, ST);
+    });
+    blob(c, 0, -44, 25, 30, F, ST);
+    blob(c, 0, -40, 14, 19, PK);
+    [-1, 1].forEach(function (side) {
+      var rot = mood === 'cheer' ? side * (Math.PI + 0.45 + 0.2 * Math.sin(t * 10 + side))
+        : mood === 'cry' ? side * (2.71 + 0.1 * Math.sin(t * 14 + side))
+        : -side * 0.12;
+      limb(c, side * 22, -58, rot, 0, 12, 7, 15, F, ST);
+    });
+    E(c, '🐰', 0, -58, 76);
+    if (mood === 'cry') {
+      c.strokeStyle = 'rgba(120,190,240,.95)'; c.lineWidth = 5; c.lineCap = 'round';
+      [-1, 1].forEach(function (side) {
+        c.beginPath(); c.moveTo(side * 14, -84); c.lineTo(side * 17, -58 + 6 * Math.sin(t * 10)); c.stroke();
+        for (var j = 0; j < 3; j++) {
+          var ph = mod(t * 2 + j * 0.33 + (side > 0 ? 0.17 : 0), 1);
+          c.fillStyle = 'rgba(120,190,240,' + (1 - ph) + ')';
+          c.beginPath(); c.arc(side * (18 + j * 2), -80 + ph * 70, 3.5, 0, Math.PI * 2); c.fill();
+        }
+      });
+      E(c, '😭', 40, -128 + Math.sin(t * 6) * 3, 30);
+    }
+    c.restore();
+  }
+
+  function sky(c, a, b) {
+    var g = c.createLinearGradient(0, 0, 0, G);
+    g.addColorStop(0, a); g.addColorStop(1, b);
+    c.fillStyle = g; c.fillRect(0, 0, W, H);
+  }
+  function hills(c, sc, col, base, amp, wl) {
+    c.fillStyle = col; c.beginPath(); c.moveTo(0, H);
+    for (var x = 0; x <= W; x += 16) {
+      var y = base - amp * (0.55 + 0.45 * Math.sin((x + sc) / wl)) - amp * 0.35 * Math.sin((x + sc) / (wl * 0.47) + 1.3);
+      c.lineTo(x, y);
+    }
+    c.lineTo(W, H); c.closePath(); c.fill();
+  }
+  function ground(c, col) {
+    c.fillStyle = col; c.fillRect(0, G, W, H - G);
+    c.fillStyle = 'rgba(255,255,255,.7)'; c.fillRect(0, G, W, 3);
+  }
+  function treeRow(c, sc, f, sp, ch, size, y) {
+    var count = Math.ceil(W / sp) + 2, total = count * sp;
+    for (var k = 0; k < count; k++) {
+      var x = mod(k * sp - sc * f, total) - sp;
+      E(c, ch, x, y, size * (0.85 + 0.3 * rnd(k, 1)));
+    }
+  }
+  function riverBand(c, sc) {
+    c.fillStyle = '#c4e3f3'; c.fillRect(0, G + 28, W, 92);
+    c.fillStyle = '#d9eef9'; c.fillRect(0, G + 28, W, 4);
+    c.strokeStyle = 'rgba(255,255,255,.75)'; c.lineWidth = 3; c.lineCap = 'round';
+    for (var k = 0; k < 9; k++) {
+      var x = mod(k * 130 - sc, W + 130) - 60, y = G + 56 + (k % 3) * 26;
+      c.beginPath(); c.moveTo(x, y); c.lineTo(x + 46, y); c.stroke();
+    }
+  }
+  function backScenery(c, cfg, sc, front) {
+    if (cfg.river) {
+      riverBand(c, sc);
+      treeRow(c, sc, 0.5, 320, '🌲', 90, G - 28);
+      treeRow(c, sc, 1, 150, '🌾', 44, G + 30);
+    } else {
+      treeRow(c, sc, 0.55, 170, '🌲', 110, G - 24);
+    }
+  }
+  function snow(c, t) {
+    c.fillStyle = 'rgba(255,255,255,.88)';
+    for (var i = 0; i < 70; i++) {
+      var x = mod(rnd(i, 1) * W + Math.sin(t * 0.8 + rnd(i, 5) * 6.28) * 20 - t * 12, W);
+      var y = mod(rnd(i, 2) * H + t * (30 + rnd(i, 3) * 50), H);
+      c.beginPath(); c.arc(x, y, 1.5 + rnd(i, 4) * 2.5, 0, Math.PI * 2); c.fill();
+    }
+  }
+  function hearts(c, lt, x, y0, start) {
+    if (lt < start) return;
+    for (var j = 0; j < 4; j++) {
+      var ph = mod((lt - start) * 0.8 + j * 0.25, 1);
+      E(c, '💗', x + Math.sin(j * 2.1 + lt * 2) * 28, y0 - ph * 80, 28, { a: Math.sin(ph * Math.PI) });
+    }
+  }
+  function confetti(c, lt, start) {
+    var t0 = lt - start; if (t0 < 0) return;
+    var cols = ['#f6a8b8', '#ffd77a', '#9ed8c0', '#a9c4f5'];
+    for (var i = 0; i < 60; i++) {
+      var y = -20 + t0 * (80 + rnd(i, 2) * 90);
+      if (y > H + 10) continue;
+      var x = rnd(i, 1) * W + Math.sin(t0 * 3 + i) * 20;
+      c.save(); c.translate(x, y); c.rotate(t0 * (2 + rnd(i, 3) * 3));
+      c.fillStyle = cols[i % 4]; c.fillRect(-4, -6, 8, 12); c.restore();
+    }
+  }
+  function gift(c, cfg, x, y) { E(c, cfg.gift, x, y, 40); }
+
+  function shot1(c, lt, u, t, cfg) {
+    sky(c, '#f9dccf', '#d5e6f2');
+    var sy = lerp(310, 235, ease(u));
+    var g = c.createRadialGradient(790, sy, 10, 790, sy, 130);
+    g.addColorStop(0, 'rgba(255,238,180,.6)'); g.addColorStop(1, 'rgba(255,238,180,0)');
+    c.fillStyle = g; c.fillRect(600, 60, 360, 400);
+    c.fillStyle = '#fff0b8'; c.beginPath(); c.arc(790, sy, 44, 0, Math.PI * 2); c.fill();
+    hills(c, 0, '#dbe6f1', 335, 30, 190); hills(c, 120, '#e8f0f7', 372, 24, 140);
+    ground(c, '#fbfdff');
+    E(c, '🌲', 90, G - 2, 130); E(c, '🌲', 880, G - 2, 150); E(c, '🌲', 820, G + 6, 100);
+    E(c, '🏠', 250, G - 4, 180);
+    var m = cl((u - 0.18) / 0.62), bx = lerp(290, 540, ease(m)), walking = m > 0 && m < 1;
+    var a = ease((u - 0.08) / 0.12);
+    c.save(); c.globalAlpha *= a;
+    bearChar(c, bx, G, walking, t);
+    gift(c, cfg, bx + 54, G - 38 + (walking ? -Math.abs(Math.sin(t * 9)) * 9 : 0));
+    c.restore();
+  }
+
+  function shot2(c, lt, u, t, cfg) {
+    var sc = 300 + lt * 150;
+    sky(c, '#d8e8f4', '#eef5f9');
+    hills(c, sc * 0.12, '#d6e3ef', 330, 30, 200); hills(c, sc * 0.3, '#e6eff6', 372, 24, 150);
+    ground(c, '#fbfdff');
+    backScenery(c, cfg, sc);
+    var ss = 2.4, sd = 0.9, sp = cl((lt - ss) / sd), slipping = lt >= ss && sp < 1;
+    var lift = slipping ? Math.sin(Math.PI * sp) * 80 : 0;
+    var rot = slipping ? -ease(sp) * Math.PI * 2 : 0;
+    var walking = !slipping;
+    if (lt < ss) E(c, '🍌', 360 + (ss - lt) * 150, G + 2, 38);
+    else {
+      var bp = lt - ss, bx2 = 360 + bp * 320;
+      if (bx2 < 1000) E(c, '🍌', bx2, G + 2 - Math.sin(Math.PI * Math.min(1, bp / 0.7)) * 130, 38, { rot: bp * 10 });
+    }
+    bearChar(c, 360, G, walking, t, lift, rot);
+    var gb = walking ? -Math.abs(Math.sin(t * 9)) * 9 : 0;
+    E(c, cfg.gift, 414, G - 38 + gb - lift * 1.2, 40, { rot: -rot * 1.3 });
+    if (lt >= ss + sd && lt < ss + sd + 0.8) E(c, '💫', 360, G - 150, 34, { rot: lt * 8 });
+    if (!cfg.river) treeRow(c, sc, 1, 520, '🌲', 190, G + 70);
+  }
+
+  function shot3(c, lt, u, t, cfg) {
+    var sc = 960, FX = 650;
+    sky(c, '#d8e8f4', '#eef5f9');
+    hills(c, sc * 0.12, '#d6e3ef', 330, 30, 200); hills(c, sc * 0.3, '#e6eff6', 372, 24, 150);
+    ground(c, '#fbfdff');
+    backScenery(c, cfg, sc);
+    if (!cfg.river) E(c, '🌲', 800, G + 22, 270);
+
+    var shiverEnd = cfg.shared ? 0.5 : 0.9;
+    var sh = u < shiverEnd ? Math.sin(lt * 45) * 2.5 : 0;
+    var hap = cfg.shared && u > 0.6;
+    var fyo = hap ? -Math.abs(Math.sin(lt * 7)) * 10 : 0;
+    shadow(c, FX, G, 34, 0.14);
+    E(c, cfg.friend, FX + sh, G + fyo, 72);
+
+    var bx, walking;
+    if (u < 0.3) { bx = lerp(300, 430, ease(u / 0.3)); walking = true; }
+    else if (cfg.shared || u < 0.35) { bx = 430; walking = false; }
+    else { bx = lerp(430, 1100, ease((u - 0.35) / 0.65)); walking = true; }
+    bearChar(c, bx, G, walking, t);
+    var bob = walking ? -Math.abs(Math.sin(t * 9)) * 9 : 0;
+
+    if (cfg.shared) {
+      var p = cl((u - 0.3) / 0.25);
+      if (p <= 0) gift(c, cfg, bx + 54, G - 38 + bob);
+      else if (p < 1) {
+        var gx = lerp(bx + 54, FX - 44, ease(p));
+        var gy = lerp(G - 38, G - 38, ease(p)) - 90 * Math.sin(Math.PI * p);
+        E(c, cfg.gift, gx, gy, 40, { rot: p * 6 });
+      } else gift(c, cfg, FX - 44, G - 38);
+      if (u > 0.55) hearts(c, lt, FX, G - 96, 0.55 * 4.8);
+    } else {
+      gift(c, cfg, bx + 54, G - 38 + bob);
+      if (u > 0.3 && u < 0.45) E(c, '👋', bx + 14, G - 104, 38, { rot: Math.sin(lt * 14) * 0.4 });
+      if (u > 0.6) E(c, '💭', FX + 24, G - 118, 38, { a: ease((u - 0.6) / 0.15) });
+    }
+  }
+
+  function shot4(c, lt, u, t, cfg) {
+    sky(c, '#fbd8b6', '#cdc0e7');
+    hills(c, 40, '#e2d8ee', 335, 30, 190); hills(c, 200, '#efe5f0', 372, 24, 140);
+    ground(c, '#fffaf6');
+    E(c, '🌲', 110, G - 2, 140); E(c, '🌲', 40, G + 6, 100);
+    var gl = 0.45 + 0.08 * Math.sin(t * 3);
+    var g = c.createRadialGradient(738, G - 90, 10, 738, G - 90, 150);
+    g.addColorStop(0, 'rgba(255,214,120,' + gl + ')'); g.addColorStop(1, 'rgba(255,214,120,0)');
+    c.fillStyle = g; c.fillRect(540, G - 260, 400, 340);
+    E(c, '🏡', 760, G - 4, 210);
+
+    var m = cl(u / 0.4), bx = lerp(-60, 470, ease(m)), walking = m < 1;
+    if (cfg.shared) char(c, cfg.friend, bx - 95, G, 66, walking, t + 0.4);
+    bearChar(c, bx, G, walking, t);
+
+    var happy = !cfg.funny, cry = cfg.funny && u > 0.6;
+    var s1 = ease((u - 0.3) / 0.1);
+    if (s1 > 0) {
+      var hop = happy && u > 0.5 ? -Math.abs(Math.sin(lt * 6)) * 14 : 0;
+      var shake = cry ? Math.sin(lt * 30) * 1.5 : 0;
+      var k = s1 * (1 + 0.15 * Math.sin(s1 * Math.PI));
+      shadow(c, 640, G, 32 * k, 0.14);
+      c.save(); c.translate(640 + shake, G + hop); c.scale(k, k);
+      bunnyRig(c, 0, 0, 1, cry ? 'cry' : (happy && u > 0.5 ? 'cheer' : 'idle'), t);
+      c.restore();
+    }
+    var gp = cl((u - 0.4) / 0.2);
+    var bob = walking ? -Math.abs(Math.sin(t * 9)) * 9 : 0;
+    if (gp <= 0) gift(c, cfg, bx + 54, G - 38 + bob);
+    else if (gp < 1) {
+      E(c, cfg.gift, lerp(bx + 54, 600, ease(gp)), G - 38 - 90 * Math.sin(Math.PI * gp), 40, { rot: gp * 6 });
+    } else gift(c, cfg, 600, G - 38);
+
+    if (happy) {
+      if (cfg.shared) {
+        var s2 = ease((u - 0.55) / 0.1);
+        if (s2 > 0) E(c, '🎂', 536, G, 60, { sx: s2, sy: s2 });
+      }
+      if (u > 0.55) {
+        hearts(c, lt, 640, G - 100, 0.55 * 5);
+        E(c, '✨', 705, G - 112 + Math.sin(t * 4) * 4, 30, { a: 0.5 + 0.5 * Math.abs(Math.sin(t * 3)) });
+      }
+      confetti(c, lt, 2.3);
+    } else if (u > 0.6) {
+      E(c, '💦', bx + 36, G - 132 + Math.sin(t * 5) * 3, 30, { a: ease((u - 0.6) / 0.1) });
+    }
+  }
+
+  function shot5(c, lt, u, t, cfg) {
+    var g = c.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#1c2a3a'); g.addColorStop(1, '#37405c');
+    c.fillStyle = g; c.fillRect(0, 0, W, H);
+    for (var i = 0; i < 50; i++) {
+      var tw = 0.4 + 0.6 * Math.abs(Math.sin(t * 1.5 + i));
+      c.fillStyle = 'rgba(255,244,214,' + tw + ')';
+      c.beginPath(); c.arc(rnd(i, 3) * W, rnd(i, 4) * H * 0.8, 1.5 + rnd(i, 5) * 1.5, 0, Math.PI * 2); c.fill();
+    }
+    c.save();
+    c.globalAlpha *= ease(u / 0.3);
+    c.fillStyle = '#f8e9ee';
+    c.font = '120px "Gowun Dodum", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif';
+    c.textAlign = 'center'; c.textBaseline = 'alphabetic';
+    c.fillText('끝', W / 2, 290);
+    var chars = cfg.shared ? ['🐻', cfg.friend, '🐰'] : ['🐻', '🐰'];
+    chars.forEach(function (ch, i) {
+      var x = W / 2 - (chars.length - 1) * 55 + i * 110;
+      var yy = 440 - Math.abs(Math.sin(t * 3 + i)) * 8;
+      if (ch === '🐻') bearRig(c, x, yy, 0.6, false, t);
+      else if (ch === '🐰') bunnyRig(c, x, yy, 0.6, cfg.funny ? 'cry' : 'cheer', t);
+      else E(c, ch, x, yy, 64);
+    });
+    c.restore();
+  }
+
+  var SHOTS = [
+    { d: 4.2, fn: shot1, cam: function (u) { return { z: lerp(1.18, 1, ease(u)), x: 480, y: 300 }; } },
+    { d: 4.4, fn: shot2 },
+    { d: 4.8, fn: shot3, cam: function (u) { return { z: lerp(1, 1.28, ease(u)), x: lerp(480, 560, ease(u)), y: 325 }; } },
+    { d: 5.0, fn: shot4 },
+    { d: 3.2, fn: shot5 }
+  ];
+  var TOTAL = 0;
+  SHOTS.forEach(function (s) { s.s = TOTAL; TOTAL += s.d; });
+
+  function buildCues(cfg) {
+    var f = cfg.fname;
+    return [
+      [0.5, 3.9, '늦잠 잔 곰은 ' + cfg.obj + ' 움켜쥐고 허둥지둥 뛰쳐나왔어요.'],
+      [4.8, 6.5, cfg.river ? '냇가 길을 후다닥 달려가는데…' : '숲길을 후다닥 달려가는데…'],
+      [6.6, 8.3, '미끄덩! 눈 속에 웬 바나나 껍질이?!'],
+      [8.9, 9.95, cfg.river ? '냇가에서 아기 오리를 만났어요.' : '숲에서 고슴도치를 만났어요.'],
+      [10.0, 13.0, cfg.shared ? f + '에게 ' + cfg.share : '곰은 ' + f + '에게 "미안, 바빠!" 하고 지나갔어요.'],
+      [13.9, 15.8, cfg.shared ? f + '와 함께 토끼네 집에 도착했어요.' : '토끼네 집에 도착했어요.'],
+      [16.2, 18.1, cfg.funny ? '토끼는 선물을 보더니… 엉엉 울기 시작했어요!' : '토끼는 활짝 웃었어요.']
+    ];
+  }
+  function buildLaughs(cfg) {
+    var l = [[7.0, 8.2]];
+    if (cfg.funny) l.push([16.5, 18.1]);
+    return l;
+  }
+
+  function render(c, t, cfg) {
+    c.setTransform(DPR, 0, 0, DPR, 0, 0);
+    c.clearRect(0, 0, W, H);
+    var i = 0;
+    while (i < SHOTS.length - 1 && t >= SHOTS[i].s + SHOTS[i].d) i++;
+    var sh = SHOTS[i], lt = Math.max(0, t - sh.s), u = cl(lt / sh.d);
+    c.save();
+    if (sh.cam) {
+      var k = sh.cam(u);
+      c.translate(W / 2, H / 2); c.scale(k.z, k.z); c.translate(-k.x, -k.y);
+    }
+    sh.fn(c, lt, u, t, cfg);
+    c.restore();
+    snow(c, t);
+    var fi = cl(1 - lt / 0.4);
+    var fo = i < SHOTS.length - 1 ? cl((lt - (sh.d - 0.4)) / 0.4) : 0;
+    var a = Math.max(fi, fo);
+    if (a > 0) { c.fillStyle = 'rgba(0,0,0,' + a + ')'; c.fillRect(0, 0, W, H); }
+  }
+
+  function buildMovie(cfg) {
+    var stage = document.createElement('div');
+    stage.className = 'stage';
+    stage.setAttribute('role', 'img');
+    stage.setAttribute('aria-label', '곰이 토끼에게 선물을 전하러 가는 애니메이션');
+    var canvas = document.createElement('canvas');
+    DPR = Math.min(2, window.devicePixelRatio || 1);
+    canvas.width = W * DPR; canvas.height = H * DPR;
+    var sub = document.createElement('div');
+    sub.className = 'sub';
+    var skip = document.createElement('button');
+    skip.type = 'button'; skip.className = 'skip'; skip.textContent = '건너뛰기';
+    var laugh = document.createElement('div');
+    laugh.className = 'laugh'; laugh.textContent = '😂 (관객 웃음) ㅋㅋㅋ';
+    stage.appendChild(canvas); stage.appendChild(laugh); stage.appendChild(sub); stage.appendChild(skip);
+    stage.canvas = canvas; stage.sub = sub; stage.skip = skip; stage.laugh = laugh; stage.cfg = cfg;
+    return stage;
+  }
+
+  function playMovie(stage, onDone) {
+    var c = stage.canvas.getContext('2d'), cfg = stage.cfg, sub = stage.sub;
+    var cues = buildCues(cfg), laughs = buildLaughs(cfg), laughIdx = -1, laugh = stage.laugh;
+    var t = 0, last = null, finished = false;
+
+    function finish() {
+      if (finished) return;
+      finished = true;
+      if (raf) cancelAnimationFrame(raf);
+      raf = 0;
+      render(c, TOTAL, cfg);
+      sub.classList.remove('on');
+      laugh.classList.remove('on');
+      stage.skip.style.display = 'none';
+      onDone();
+    }
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce) { finish(); return; }
+
+    stage.skip.addEventListener('click', finish);
+    render(c, 0, cfg);
+    function frame(now) {
+      if (last == null) last = now;
+      var dt = Math.min(0.1, (now - last) / 1000);
+      last = now; t += dt;
+      if (t >= TOTAL) { finish(); return; }
+      render(c, t, cfg);
+      var cue = null;
+      for (var i = 0; i < cues.length; i++) if (t >= cues[i][0] && t < cues[i][1]) cue = cues[i];
+      if (cue) {
+        if (sub.textContent !== cue[2]) sub.textContent = cue[2];
+        sub.classList.add('on');
+      } else sub.classList.remove('on');
+      var li = -1;
+      for (var j = 0; j < laughs.length; j++) if (t >= laughs[j][0] && t < laughs[j][1]) li = j;
+      if (li !== laughIdx) {
+        laugh.classList.remove('on');
+        if (li >= 0) { void laugh.offsetWidth; laugh.classList.add('on'); }
+        laughIdx = li;
+      }
+      raf = requestAnimationFrame(frame);
+    }
+    raf = requestAnimationFrame(frame);
+  }
+
+  /* ---------- 화면 ---------- */
+  function show(name) {
+    if (raf) { cancelAnimationFrame(raf); raf = 0; }
+    var s = scenes[name]();
+    root.classList.toggle('wide', !!s.movie);
+    root.innerHTML = '';
+    var wrap = document.createElement('div');
+    wrap.className = 'scene';
+
+    var art;
+    if (s.movie) {
+      var river = state.path === 'river', g = GIFTS[state.gift];
+      art = buildMovie({
+        river: river, shared: state.shared, funny: g.funny,
+        gift: g.emoji, obj: g.obj, share: g.share,
+        friend: river ? '🦆' : '🦔',
+        fname: river ? '아기 오리' : '고슴도치'
+      });
+    } else {
+      art = document.createElement('div');
+      art.className = 'art';
+      art.textContent = s.art;
+    }
+
+    var p = document.createElement('p');
+    p.className = 'text' + (s.movie ? ' reveal' : '');
+    p.textContent = s.text;
+
+    var box = document.createElement('div');
+    box.className = 'choices' + (s.movie ? ' reveal' : '');
+    s.choices.forEach(function (ch) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = ch.label;
+      if (ch.primary) b.className = 'primary';
+      b.addEventListener('click', function () {
+        if (ch.set) ch.set();
+        show(ch.next);
+      });
+      box.appendChild(b);
+    });
+
+    var v = null;
+    if (s.verdict) {
+      v = document.createElement('p');
+      v.className = 'verdict reveal';
+      v.textContent = s.verdict;
+    }
+    wrap.appendChild(art); wrap.appendChild(p);
+    if (v) wrap.appendChild(v);
+    wrap.appendChild(box);
+    root.appendChild(wrap);
+
+    var first = box.querySelector('button');
+    if (s.movie) {
+      playMovie(art, function () {
+        p.classList.add('ready'); box.classList.add('ready');
+        if (v) setTimeout(function () { v.classList.add('ready'); }, 600);
+        if (first) first.focus({ preventScroll: true });
+      });
+    } else if (first) {
+      first.focus({ preventScroll: true });
+    }
+  }
+
+  reset();
+  show('start');
+})();
+</script>
+</body>
+</html>
